@@ -1,8 +1,33 @@
 # Peek CLI
 
-Read-only inspection of remote servers over SSH (ls, cat, tail, grep, ps, df, free, uptime, tree, systemctl status) with named profiles and table/json output, built for pairing with an LLM.
+Read-only inspection of remote servers over SSH through named profiles, with
+table/json/csv output. Built to pair with an LLM investigating a server —
+list a directory, tail a log, grep for an error, check processes, disk and
+memory — without handing it a shell.
 
-## Installation
+`peek` is the SSH sibling of [db-cli](https://github.com/jeffersongoncalves/db-cli):
+`db` gives an agent read-only SQL, `peek` gives it read-only server access.
+
+## Why not just `ssh host "<command>"`?
+
+Because a free-form shell can't be made read-only: `find -delete`, `sed -i`,
+`sort -o`, `tee`, `awk 'BEGIN{system(...)}'`, `;`, `|`, `$( )` and `>` all
+slip past any filter. `peek` has no `exec` command at all. Each subcommand
+runs one fixed remote program with fixed flags:
+
+- every argument you pass (path, pattern, unit) is single-quoted for the
+  remote shell, so it can never become a new command, pipe or redirect;
+- paths starting with `-` are refused, so a path can't turn into an option
+  (e.g. `-delete` for `find`);
+- `ssh` runs with `BatchMode=yes`, so it never stops to ask for a password.
+
+## Requirements
+
+- PHP `^8.3`
+- An `ssh` client on `PATH` (your `~/.ssh/config`, agent and keys apply as usual)
+- Linux targets with GNU coreutils/findutils/procps (`find -printf`, `ps --sort`, `df -x`, `free`)
+
+## Install
 
 ```bash
 composer global require jeffersongoncalves/peek-cli
@@ -12,19 +37,68 @@ Or grab the standalone PHAR from the [latest release](https://github.com/jeffers
 
 ## Usage
 
-```bash
-peek example world
-```
-
-Every command is non-interactive: all input arrives as arguments and flags,
-so a script or an AI agent can drive it without a TTY.
-
-Update to the latest release (PHAR installs only — Composer installs update
-via `composer global update`):
+### Update
 
 ```bash
 peek self-update
 peek self-update --check
+```
+
+### Connection profiles
+
+Profiles are saved to `~/.peek-cli/config.json`.
+
+```bash
+peek connections:add                     # interactive
+peek connections:add prod --host=example.com --port=22 --username=deploy --private-key=~/.ssh/id_ed25519
+peek connections:add prod --host=prod-alias --port= --username= --private-key=   # everything from ~/.ssh/config
+peek connections:list
+peek connections:remove prod
+```
+
+`--host` may be a `Host` alias from `~/.ssh/config`; leave port, username and
+key empty to let the SSH config decide. Keys with a passphrase need to be
+loaded in `ssh-agent` first, since `peek` never prompts.
+
+### Files
+
+```bash
+peek ls prod /var/www/app
+peek tree prod /etc/nginx --depth=2       # skips .git, node_modules, vendor unless --all
+peek cat prod /etc/nginx/nginx.conf       # capped at --max-bytes=100000
+peek head prod /var/www/app/.env.example --lines=50
+peek tail prod /var/log/nginx/error.log --lines=200
+peek grep prod "SQLSTATE" /var/www/app/storage/logs --recursive
+peek grep prod "timeout|refused" /var/log/syslog --regex --ignore-case --max=50
+```
+
+Relative paths start at the SSH user's home directory.
+
+### System
+
+```bash
+peek uptime prod                           # also a quick connection check
+peek ps prod --sort=mem --limit=10
+peek df prod
+peek free prod
+peek systemctl prod nginx                  # status only, never start/stop/restart
+```
+
+### Output formats
+
+`ls`, `ps`, `df`, `free` and `connections:list` accept
+`--format=table|json|csv` (default `table`); `tree` and `grep` accept
+`--format=text|json|csv` (default `text`). `json` is the format to reach for
+when piping results to an LLM or another program.
+
+## Development
+
+```bash
+composer install
+composer test       # Pest tests + Pint lint
+composer lint       # Auto-fix style
+composer phpstan    # Static analysis
+composer build      # Build the PHAR into builds/peek
 ```
 
 ## Releasing
@@ -36,12 +110,6 @@ published tag never moves.
 
 ```bash
 gh workflow run release.yml --ref main
-```
-
-## Testing
-
-```bash
-composer test
 ```
 
 ## Changelog

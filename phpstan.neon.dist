@@ -6,3 +6,6 @@ parameters:
     ignoreErrors:
         -
             identifier: method.notFound
+        -
+            identifier: property.notFound
+            path: tests/*
