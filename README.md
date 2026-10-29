@@ -7,7 +7,7 @@
 # Peek CLI
 
 <p align="center">
-  <a href="https://github.com/jeffersongoncalves/peek-cli/actions"><img src="https://github.com/jeffersongoncalves/peek-cli/actions/workflows/run-tests.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://github.com/jeffersongoncalves/peek-cli/actions"><img src="https://github.com/jeffersongoncalves/peek-cli/actions/workflows/tests.yml/badge.svg" alt="Tests" /></a>
   <a href="https://packagist.org/packages/jeffersongoncalves/peek-cli"><img src="https://img.shields.io/packagist/dt/jeffersongoncalves/peek-cli" alt="Total Downloads" /></a>
   <a href="https://github.com/jeffersongoncalves/peek-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/jeffersongoncalves/peek-cli" alt="License" /></a>
   <img src="https://img.shields.io/badge/php-%3E%3D8.3-8892BF" alt="PHP 8.3+" />
